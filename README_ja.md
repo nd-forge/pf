@@ -7,13 +7,13 @@
 ## インストール
 
 ```bash
-go get github.com/taiki-nd/pf
+go get github.com/nd-forge/pf
 ```
 
 ## クイックスタート
 
 ```go
-import "github.com/taiki-nd/pf"
+import "github.com/nd-forge/pf"
 
 type User struct {
     Name    string `json:"name"`

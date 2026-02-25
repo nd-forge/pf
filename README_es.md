@@ -7,13 +7,13 @@ Un paquete Go de pretty-print que extiende `fmt`. Formatea structs, maps y slice
 ## Instalación
 
 ```bash
-go get github.com/taiki-nd/pf
+go get github.com/nd-forge/pf
 ```
 
 ## Inicio rápido
 
 ```go
-import "github.com/taiki-nd/pf"
+import "github.com/nd-forge/pf"
 
 type User struct {
     Name    string `json:"name"`

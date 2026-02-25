@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/taiki-nd/pf"
+	"github.com/nd-forge/pf"
 )
 
 // --- Custom interface examples ---

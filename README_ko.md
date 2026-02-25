@@ -7,13 +7,13 @@
 ## 설치
 
 ```bash
-go get github.com/taiki-nd/pf
+go get github.com/nd-forge/pf
 ```
 
 ## 빠른 시작
 
 ```go
-import "github.com/taiki-nd/pf"
+import "github.com/nd-forge/pf"
 
 type User struct {
     Name    string `json:"name"`
