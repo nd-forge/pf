@@ -59,12 +59,12 @@ func (e *AppError) Error() string {
 
 func TestPrint_BasicStruct(t *testing.T) {
 	user := User{
-		Name:   "Noda",
+		Name:   "John Smith",
 		Age:    30,
 		Active: true,
 		Address: Address{
-			City:    "Yokohama",
-			Country: "Japan",
+			City:    "San Francisco",
+			Country: "USA",
 		},
 		Tags: []string{"go", "trading"},
 	}
@@ -73,10 +73,10 @@ func TestPrint_BasicStruct(t *testing.T) {
 	got := c.Sprint(user)
 
 	expects := []string{
-		`Name: "Noda"`,
+		`Name: "John Smith"`,
 		`Age: 30`,
 		`Active: true`,
-		`City: "Yokohama"`,
+		`City: "San Francisco"`,
 		`Tags: ["go", "trading"]`,
 	}
 	for _, e := range expects {
@@ -152,7 +152,7 @@ func TestPrint_EmptySlice(t *testing.T) {
 func TestPrint_MaxDepth(t *testing.T) {
 	user := User{
 		Name:    "Test",
-		Address: Address{City: "Tokyo"},
+		Address: Address{City: "New York"},
 	}
 	c := Config{Indent: "  ", MaxDepth: 1, ColorMode: false}
 	got := c.Sprint(user)
@@ -198,14 +198,14 @@ func TestError(t *testing.T) {
 // --- Diff tests ---
 
 func TestDiff_Struct(t *testing.T) {
-	a := User{Name: "Noda", Age: 30, Active: true}
-	b := User{Name: "Noda", Age: 31, Active: false}
+	a := User{Name: "John", Age: 30, Active: true}
+	b := User{Name: "John", Age: 31, Active: false}
 
 	c := Config{Indent: "  ", ColorMode: false}
 	got := c.SprintDiff(a, b)
 
 	expects := []string{
-		`Name: "Noda"`, // unchanged
+		`Name: "John"`, // unchanged
 		"- Age: 30",
 		"+ Age: 31",
 		"- Active: true",

@@ -59,14 +59,14 @@ type User struct {
 
 func main() {
 	user := User{
-		Name:   "野田大貴",
+		Name:   "John Smith",
 		Age:    30,
 		Status: 1,
 		Token:  Token{Value: "secret_abcd1234"},
 		Address: Address{
-			City:    "横浜",
-			Country: "日本",
-			Zip:     "220-0001",
+			City:    "San Francisco",
+			Country: "USA",
+			Zip:     "94105",
 		},
 		Tags: []string{"developer", "trader", "audiophile"},
 		Orders: []Order{
@@ -116,7 +116,7 @@ func main() {
 	newUser.Age = 31
 	newUser.Status = 2
 	newUser.Tags = []string{"developer", "trader", "audiophile", "gopher"}
-	newUser.Address.City = "東京"
+	newUser.Address.City = "New York"
 
 	pf.Diff(oldUser, newUser)
 
@@ -133,7 +133,7 @@ func main() {
 	pf.DefaultConfig.ColorMode = false
 	s := pf.Sprint(map[string]interface{}{
 		"action": "login",
-		"user":   "noda",
+		"user":   "jsmith",
 		"ok":     true,
 	})
 	fmt.Printf("[LOG] request: %s\n", s)

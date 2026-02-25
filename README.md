@@ -1,6 +1,6 @@
 # pf
 
-`fmt` を拡張した Go の pretty-print パッケージ。構造体・map・slice をインデント付きで見やすく出力します。
+A Go pretty-print package that extends `fmt`. Formats structs, maps, and slices with indentation for readable output.
 
 ## Install
 
@@ -20,7 +20,7 @@ type User struct {
     Address Address
 }
 
-user := User{Name: "野田", Age: 30, Active: true, Address: Address{City: "横浜"}}
+user := User{Name: "John", Age: 30, Active: true, Address: Address{City: "San Francisco"}}
 
 // Pretty print
 pf.Print(user)
@@ -29,11 +29,11 @@ pf.Print(user)
 Output (with ANSI colors in terminal):
 ```
 {
-  Name: "野田",
+  Name: "John",
   Age: 30,
   Active: true,
   Address: {
-    City: "横浜"
+    City: "San Francisco"
   }
 }
 ```
@@ -44,25 +44,25 @@ Output (with ANSI colors in terminal):
 
 | Function | Description |
 |---|---|
-| `pf.Print(v)` | stdout に出力 |
-| `pf.Sprint(v)` | string で返す |
-| `pf.Fprint(w, v)` | io.Writer に出力 |
+| `pf.Print(v)` | Print to stdout |
+| `pf.Sprint(v)` | Return as string |
+| `pf.Fprint(w, v)` | Write to io.Writer |
 
 ### Diff
 
 | Function | Description |
 |---|---|
-| `pf.Diff(a, b)` | 差分を stdout に出力 |
-| `pf.SprintDiff(a, b)` | 差分を string で返す |
-| `pf.FprintDiff(w, a, b)` | 差分を io.Writer に出力 |
+| `pf.Diff(a, b)` | Print diff to stdout |
+| `pf.SprintDiff(a, b)` | Return diff as string |
+| `pf.FprintDiff(w, a, b)` | Write diff to io.Writer |
 
 ```go
-old := User{Name: "Noda", Age: 30, Active: true}
-new := User{Name: "Noda", Age: 31, Active: false}
+old := User{Name: "John", Age: 30, Active: true}
+new := User{Name: "John", Age: 31, Active: false}
 
 pf.Diff(old, new)
 // {
-//   Name: "Noda"
+//   Name: "John"
 //   - Age: 30
 //   + Age: 31
 //   - Active: true
@@ -94,7 +94,7 @@ type User struct {
 
 // UseJSONTags: true
 // {
-//   user_name: "野田",
+//   user_name: "John",
 // }
 // (Email is omitempty + zero value → omitted)
 ```
@@ -103,7 +103,7 @@ type User struct {
 
 ### PrettyPrinter
 
-最優先。独自の pretty-print 出力を定義できます。
+Highest priority. Define custom pretty-print output for your types.
 
 ```go
 type Token struct { Value string }
@@ -118,7 +118,7 @@ pf.Print(Token{Value: "secret1234"})
 
 ### PrettyPrinterConfig
 
-Config を受け取って出力を変えられます。
+Receives the Config to produce format-aware output.
 
 ```go
 func (t Token) PrettyPrintConfig(c pf.Config) string {
@@ -132,10 +132,10 @@ func (t Token) PrettyPrintConfig(c pf.Config) string {
 
 ### fmt.Stringer / error
 
-構造体以外の型で `fmt.Stringer` や `error` を実装していれば自動的に使われます。
-構造体の場合はフィールド展開が優先されます（PrettyPrinter を実装すればそちらが優先）。
+For non-struct types, `fmt.Stringer` and `error` implementations are used automatically.
+For structs, field expansion takes priority (implement `PrettyPrinter` to override).
 
-**Interface 優先順位:**
+**Interface priority:**
 
 1. `PrettyPrinterConfig` (config-aware)
 2. `PrettyPrinter`
@@ -145,12 +145,12 @@ func (t Token) PrettyPrintConfig(c pf.Config) string {
 
 ## DefaultConfig
 
-グローバル設定を変更可能：
+You can modify the global configuration:
 
 ```go
-pf.DefaultConfig.ColorMode = false    // ログ向け
-pf.DefaultConfig.UseJSONTags = true   // JSON名で表示
-pf.DefaultConfig.ShowTypes = true     // 型名表示
+pf.DefaultConfig.ColorMode = false    // for logging
+pf.DefaultConfig.UseJSONTags = true   // display with JSON names
+pf.DefaultConfig.ShowTypes = true     // show type names
 ```
 
 ## License
