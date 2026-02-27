@@ -3,6 +3,7 @@ package pf
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -816,5 +817,61 @@ func TestPrettyPrinterConfig_ViaPointer(t *testing.T) {
 	got := c.Sprint(&v)
 	if got != "PtrCfg<hello>" {
 		t.Errorf("expected PtrCfg<hello>, got: %q", got)
+	}
+}
+
+// --- Addressable pointer-receiver interface tests ---
+// When a struct field (value, not pointer) is addressable,
+// its pointer receiver methods should be discovered via v.Addr().
+
+func TestPrettyPrinterConfig_AddressableField(t *testing.T) {
+	type Container struct {
+		Printer PtrConfigPrinter
+	}
+	// Pass pointer so inner fields become addressable
+	v := &Container{Printer: PtrConfigPrinter{Value: "addr"}}
+	c := Config{Indent: "  ", ColorMode: false}
+	got := c.Sprint(v)
+	if !strings.Contains(got, "PtrCfg<addr>") {
+		t.Errorf("expected PtrCfg<addr>, got: %q", got)
+	}
+}
+
+func TestPrettyPrinter_AddressableField(t *testing.T) {
+	type Container struct {
+		PP PtrPrettyPrinter
+	}
+	// Pass pointer so inner fields become addressable
+	v := &Container{PP: PtrPrettyPrinter{Value: "addr"}}
+	c := Config{Indent: "  ", ColorMode: false}
+	got := c.Sprint(v)
+	if !strings.Contains(got, "PtrPP<addr>") {
+		t.Errorf("expected PtrPP<addr>, got: %q", got)
+	}
+}
+
+// --- tryInterfaces with unexported field (CanInterface=false) ---
+
+func TestTryInterfaces_CannotInterface(t *testing.T) {
+	type hidden struct {
+		secret int
+	}
+	v := reflect.ValueOf(hidden{secret: 42})
+	field := v.Field(0) // unexported field: CanInterface() == false
+
+	f := &formatter{config: Config{Indent: "  "}}
+	if f.tryInterfaces(field) {
+		t.Error("expected false for unexported field")
+	}
+}
+
+// --- writeLine with non-empty prefix ---
+
+func TestWriteLine_WithPrefix(t *testing.T) {
+	d := &differ{config: Config{Indent: "  "}}
+	d.writeLine(">>", "hello")
+	got := d.sb.String()
+	if got != ">> hello\n" {
+		t.Errorf("expected %q, got: %q", ">> hello\n", got)
 	}
 }
