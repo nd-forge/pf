@@ -74,12 +74,6 @@ jobs:
             echo "below_threshold=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          files: coverage.out
-          token: ${{ secrets.CODECOV_TOKEN }}
-
   fix-coverage:
     needs: [coverage]
     if: needs.coverage.outputs.below_threshold == 'true'
@@ -111,3 +105,40 @@ jobs:
             - Verify all tests pass with `go test -race -count=1 ./...`
             - Run `go test -coverprofile=coverage.out -covermode=atomic ./...` and confirm coverage is above 80%
           claude_args: "--model claude-opus-4-6 --max-turns 30 --allowedTools Edit,Read,Write,Glob,Grep,Bash(go test:*),Bash(go tool cover:*)"
+
+  update-badge:
+    needs: [coverage]
+    if: needs.coverage.outputs.below_threshold == 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Update coverage badge
+        run: |
+          TOTAL=${{ needs.coverage.outputs.total }}
+
+          if (( $(echo "$TOTAL >= 90" | bc -l) )); then
+            COLOR="brightgreen"
+          elif (( $(echo "$TOTAL >= 80" | bc -l) )); then
+            COLOR="green"
+          elif (( $(echo "$TOTAL >= 70" | bc -l) )); then
+            COLOR="yellowgreen"
+          elif (( $(echo "$TOTAL >= 60" | bc -l) )); then
+            COLOR="yellow"
+          else
+            COLOR="red"
+          fi
+
+          sed -i "s|!\[coverage\](https://img.shields.io/badge/coverage-[^)]*)|![coverage](https://img.shields.io/badge/coverage-${TOTAL}%25-${COLOR})|g" README.md
+
+          if git diff --quiet README.md; then
+            echo "No badge change needed"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add README.md
+            git commit -m "update coverage badge to ${TOTAL}%"
+            git push origin HEAD:${{ github.head_ref }}
+          fi
