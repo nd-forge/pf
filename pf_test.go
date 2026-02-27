@@ -512,7 +512,7 @@ func TestPrint_MapShowTypes(t *testing.T) {
 // --- Struct edge cases ---
 
 type EmptyExported struct {
-	hidden int
+	hidden int //nolint:unused // intentionally unexported to test struct with no exported fields
 }
 
 func TestPrint_EmptyStruct(t *testing.T) {
