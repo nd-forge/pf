@@ -97,6 +97,7 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           model: "claude-opus-4-6"
+          allowed_tools: "Edit,Read,Write,Glob,Grep,WebFetch,WebSearch,Bash(poetry update:*),Bash(poetry run pip-audit:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*)"
           prompt: |
             The current code coverage is ${{ needs.coverage.outputs.total }}%, which is below the 80% target.
 
