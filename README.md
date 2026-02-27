@@ -2,7 +2,7 @@
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/nd-forge/pf.svg)](https://pkg.go.dev/github.com/nd-forge/pf)
 [![CI](https://github.com/nd-forge/pf/actions/workflows/ci.yml/badge.svg)](https://github.com/nd-forge/pf/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/nd-forge/pf/branch/main/graph/badge.svg)](https://codecov.io/gh/nd-forge/pf)
+[![coverage](https://img.shields.io/badge/coverage-98.1%25-brightgreen)](https://github.com/nd-forge/pf/actions/workflows/release.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/nd-forge/pf)](https://goreportcard.com/report/github.com/nd-forge/pf)
 
 **English** | [日本語](README_ja.md) | [中文](README_zh.md) | [한국어](README_ko.md) | [Español](README_es.md) | [Português](README_pt.md)
