@@ -1,0 +1,118 @@
+name: CI & Auto Tag
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ['1.23', '1.24', '1.25']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: Run tests
+        run: go test -v -race -count=1 ./...
+
+      - name: Generate coverage
+        if: matrix.go-version == '1.25'
+        run: go test -coverprofile=coverage.out -covermode=atomic ./...
+
+      - name: Upload coverage to Codecov
+        if: matrix.go-version == '1.25'
+        uses: codecov/codecov-action@v4
+        with:
+          files: coverage.out
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.64.8
+          install-mode: goinstall
+
+  tag:
+    needs: [test, lint]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version from merge commit
+        id: extract
+        run: |
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          echo "Commit message: $COMMIT_MSG"
+
+          # Extract version from branch name patterns:
+          #   "Merge pull request #N from .../v/X.Y.Z..."
+          #   "Merge branch 'v/X.Y.Z'"
+          VERSION=$(echo "$COMMIT_MSG" | sed -n 's|.*v/\([0-9]\+\.[0-9]\+\.[0-9]\+\).*|\1|p' | head -1)
+
+          if [ -n "$VERSION" ]; then
+            echo "version=v${VERSION}" >> "$GITHUB_OUTPUT"
+            echo "found=true" >> "$GITHUB_OUTPUT"
+            echo "Detected version: v${VERSION}"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "No version pattern found in commit message"
+          fi
+
+      - name: Check if tag exists
+        if: steps.extract.outputs.found == 'true'
+        id: check
+        run: |
+          TAG=${{ steps.extract.outputs.version }}
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Tag $TAG already exists, skipping"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create and push tag
+        if: steps.extract.outputs.found == 'true' && steps.check.outputs.exists != 'true'
+        run: |
+          TAG=${{ steps.extract.outputs.version }}
+          git tag "$TAG"
+          git push origin "$TAG"
+          echo "Created and pushed tag: $TAG"
+
+      - name: Update _benchmark/go.mod version
+        if: steps.extract.outputs.found == 'true' && steps.check.outputs.exists != 'true'
+        run: |
+          TAG=${{ steps.extract.outputs.version }}
+          sed -i "s|github.com/nd-forge/stream v.*|github.com/nd-forge/stream ${TAG}|" _benchmark/go.mod
+          if git diff --quiet; then
+            echo "No changes to _benchmark/go.mod"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add _benchmark/go.mod
+            git commit -m "chore: update _benchmark/go.mod to ${TAG}"
+            git push origin main
+          fi
