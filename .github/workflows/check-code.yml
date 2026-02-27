@@ -6,9 +6,6 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
-  issues: write
-  id-token: write
 
 jobs:
   test:
@@ -23,6 +20,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go-version }}
+          cache: false
 
       - name: Run tests
         run: go test -v -race -count=1 ./...
@@ -35,6 +33,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.25'
+          cache: false
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
@@ -45,79 +44,34 @@ jobs:
   coverage:
     needs: [test]
     runs-on: ubuntu-latest
-    outputs:
-      total: ${{ steps.check.outputs.total }}
-      below_threshold: ${{ steps.check.outputs.below_threshold }}
-      report: ${{ steps.check.outputs.report }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
 
       - uses: actions/setup-go@v5
         with:
           go-version: '1.25'
+          cache: false
 
-      - name: Generate coverage
-        run: go test -coverprofile=coverage.out -covermode=atomic ./...
-
-      - name: Check coverage threshold
-        id: check
+      - name: Check coverage
         run: |
+          go test -coverprofile=coverage.out -covermode=atomic ./...
           REPORT=$(go tool cover -func=coverage.out)
           TOTAL=$(echo "$REPORT" | grep total | awk '{print $3}' | sed 's/%//')
-          echo "total=$TOTAL" >> $GITHUB_OUTPUT
-          echo "report<<EOF" >> $GITHUB_OUTPUT
-          echo "$REPORT" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          echo "$REPORT"
+          echo ""
+          echo "Total coverage: ${TOTAL}%"
           if (( $(echo "$TOTAL < 80.0" | bc -l) )); then
-            echo "below_threshold=true" >> $GITHUB_OUTPUT
-          else
-            echo "below_threshold=false" >> $GITHUB_OUTPUT
+            echo "::error::Coverage ${TOTAL}% is below 80% threshold"
+            exit 1
           fi
 
-  fix-coverage:
-    needs: [coverage]
-    if: needs.coverage.outputs.below_threshold == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref }}
-
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.25'
-
-      - name: Fix coverage with Claude Code
-        uses: anthropics/claude-code-action@v1
-        with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          prompt: |
-            The current code coverage is ${{ needs.coverage.outputs.total }}%, which is below the 80% target.
-
-            Analyze the coverage report below and add tests or improve the implementation to bring coverage above 80%.
-
-            Coverage report:
-            ${{ needs.coverage.outputs.report }}
-
-            Requirements:
-            - Identify functions and lines with insufficient coverage, then add tests for them
-            - Follow the existing test patterns and style in pf_test.go
-            - Verify all tests pass with `go test -race -count=1 ./...`
-            - Run `go test -coverprofile=coverage.out -covermode=atomic ./...` and confirm coverage is above 80%
-          claude_args: "--model claude-opus-4-6 --max-turns 30 --allowedTools Edit,Read,Write,Glob,Grep,Bash(go test:*),Bash(go tool cover:*)"
-
-  update-badge:
-    needs: [coverage]
-    if: needs.coverage.outputs.below_threshold == 'false'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref }}
-
       - name: Update coverage badge
+        if: success()
         run: |
-          TOTAL=${{ needs.coverage.outputs.total }}
+          go test -coverprofile=coverage.out -covermode=atomic ./...
+          TOTAL=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
 
           if (( $(echo "$TOTAL >= 90" | bc -l) )); then
             COLOR="brightgreen"
