@@ -42,6 +42,38 @@ jobs:
           version: v1.64.8
           install-mode: goinstall
 
+  code-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: false
+
+      - name: Run gofmt
+        run: gofmt -s -w .
+
+      - name: Push gofmt changes
+        run: |
+          if git diff --quiet; then
+            echo "No gofmt changes needed"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -A
+            git commit -m "style: gofmt -s"
+            git push origin HEAD:${{ github.head_ref }}
+          fi
+
+      - name: Check gocyclo
+        run: |
+          go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
+          gocyclo -over 15 .
+
   coverage:
     needs: [test]
     runs-on: ubuntu-latest

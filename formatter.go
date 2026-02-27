@@ -37,6 +37,10 @@ func (f *formatter) format(v reflect.Value, depth int) {
 		}
 	}
 
+	f.formatByKind(v, depth)
+}
+
+func (f *formatter) formatByKind(v reflect.Value, depth int) {
 	switch v.Kind() {
 	case reflect.Struct:
 		f.formatStruct(v, depth)
@@ -138,7 +142,6 @@ func (f *formatter) formatStruct(v reflect.Value, depth int) {
 	type fieldEntry struct {
 		displayName string
 		value       reflect.Value
-		exported    bool
 	}
 	var fields []fieldEntry
 
@@ -148,25 +151,7 @@ func (f *formatter) formatStruct(v reflect.Value, depth int) {
 			continue
 		}
 
-		name := sf.Name
-		if f.config.UseJSONTags {
-			if tag := sf.Tag.Get("json"); tag != "" {
-				parts := strings.Split(tag, ",")
-				if parts[0] != "" && parts[0] != "-" {
-					name = parts[0]
-				}
-				// Skip fields with json:"-"
-				if parts[0] == "-" {
-					continue
-				}
-				// Skip omitempty zero values
-				for _, opt := range parts[1:] {
-					if opt == "omitempty" && v.Field(i).IsZero() {
-						name = "" // signal to skip
-					}
-				}
-			}
-		}
+		name := resolveFieldName(sf, v.Field(i), f.config.UseJSONTags)
 		if name == "" {
 			continue
 		}
@@ -174,7 +159,6 @@ func (f *formatter) formatStruct(v reflect.Value, depth int) {
 		fields = append(fields, fieldEntry{
 			displayName: name,
 			value:       v.Field(i),
-			exported:    sf.IsExported(),
 		})
 	}
 
@@ -198,6 +182,35 @@ func (f *formatter) formatStruct(v reflect.Value, depth int) {
 
 	f.sb.WriteString(closingIndent)
 	f.colored(cBrace, "}")
+}
+
+// resolveFieldName returns the display name for a struct field.
+// Returns "" if the field should be skipped.
+func resolveFieldName(sf reflect.StructField, fieldValue reflect.Value, useJSONTags bool) string {
+	name := sf.Name
+	if !useJSONTags {
+		return name
+	}
+
+	tag := sf.Tag.Get("json")
+	if tag == "" {
+		return name
+	}
+
+	parts := strings.Split(tag, ",")
+	if parts[0] == "-" {
+		return ""
+	}
+	if parts[0] != "" {
+		name = parts[0]
+	}
+
+	for _, opt := range parts[1:] {
+		if opt == "omitempty" && fieldValue.IsZero() {
+			return ""
+		}
+	}
+	return name
 }
 
 func (f *formatter) formatMap(v reflect.Value, depth int) {
